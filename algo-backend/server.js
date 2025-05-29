@@ -70,17 +70,21 @@ app.post('/api/hints', async (req, res) => {
             5. If no code is provided, suggest ONE natural starting point.
             6. Avoid giving full solutions or final answers.
             7. Use tone and intent that fits the question:
-            - "hint": Gently steer in the right direction
-            - "why": Give a quick concept-level explanation
-            - "how": Suggest a helpful approach to try
-            - "error": Point out the likely culprit in their code
-            - "next": Suggest what to focus on after their current progress
+               - For any question: Be helpful but concise
+               - For code reviews: Point out ONE specific improvement
+               - For concept questions: Give ONE key insight
+               - For debugging: Identify ONE likely issue
+               - For optimization: Suggest ONE efficiency improvement
+               - For general questions: Provide ONE clear direction
             8. Don't re-explain the problem; assume they already understand it.
 
             Example responses:
             - "You're close — try sorting the list first to make the logic easier."
             - "That \`if\` condition might be skipping edge cases. Try printing it for a failing input."
             - "Think about how you'd count unique characters without scanning the whole string again."
+            - "The time complexity can be improved by using a hash map instead of nested loops."
+            - "Try breaking down the problem into smaller subproblems first."
+            - "Consider using a two-pointer approach for this array problem."
         `;
 
         const result = await model.generateContent(prompt);
