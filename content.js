@@ -48,7 +48,7 @@ if (!window.__algoChatInjected) {
         input.value = '';
         // Fetch hint from backend (replace with your endpoint)
         try {
-            const res = await fetch('https://algo-backend.onrender.com/api/hints', {
+            const res = await fetch('https://algo-de3g.onrender.com/api/hints', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: msg, problemInfo: getProblemInfo() })

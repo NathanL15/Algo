@@ -1,7 +1,7 @@
 // Configuration for the Algo! extension
 const config = {
     // Backend API endpoint
-    backendApiEndpoint: 'https://algo-backend.onrender.com/api/hints',
+    backendApiEndpoint: 'https://algo-de3g.onrender.com/api/hints',
     
     // Environment
     environment: 'production',
