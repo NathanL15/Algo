@@ -88,11 +88,24 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-    console.log('Environment:', {
-        NODE_ENV: process.env.NODE_ENV,
-        hasGeminiKey: !!process.env.GEMINI_API_KEY
+// Only start the server if this file is run directly
+if (require.main === module) {
+    const server = app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+        console.log('Environment:', {
+            NODE_ENV: process.env.NODE_ENV,
+            hasGeminiKey: !!process.env.GEMINI_API_KEY
+        });
     });
-}); 
+
+    // Handle graceful shutdown
+    process.on('SIGTERM', () => {
+        console.log('SIGTERM signal received: closing HTTP server');
+        server.close(() => {
+            console.log('HTTP server closed');
+            process.exit(0);
+        });
+    });
+}
+
+module.exports = app; 
