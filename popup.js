@@ -1,3 +1,6 @@
+// Import configuration
+import config from './config.js';
+
 // DOM Elements
 const chatMessages = document.getElementById('chatMessages');
 const userInput = document.getElementById('userInput');
@@ -54,6 +57,9 @@ async function handleSendMessage() {
         // Update loading message with actual response
         loadingMessage.querySelector('.message-content').textContent = response;
     } catch (error) {
+        if (config.FEATURES.ENABLE_DEBUG_LOGGING) {
+            console.error('Error sending message:', error);
+        }
         loadingMessage.querySelector('.message-content').textContent = 
             'Sorry, I encountered an error. Please try again.';
     }
@@ -75,10 +81,7 @@ function addMessage(content, sender, isLoading = false) {
 
 // Send message to backend
 async function sendToBackend(message) {
-    // TODO: Replace with actual backend API endpoint
-    const API_ENDPOINT = 'YOUR_BACKEND_API_ENDPOINT';
-
-    const response = await fetch(API_ENDPOINT, {
+    const response = await fetch(config.BACKEND_API_ENDPOINT, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
