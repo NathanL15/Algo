@@ -55,34 +55,37 @@ app.post('/api/hints', async (req, res) => {
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         const prompt = `
-            You are an AI assistant helping with LeetCode problems.
-            
-            Problem Information:
-            Title: ${req.body.problemInfo?.title || 'Unknown'}
-            URL: ${req.body.problemInfo?.url || 'Not provided'}
-            Description: ${req.body.problemInfo?.description || 'Not provided'}
-            
-            User's Current Progress:
+            You are a stepwise LeetCode tutor. Provide a single, focused hint in 1-3 sentences.
+
+            Context:
+            Problem: ${req.body.problemInfo?.title || 'Unknown'}
             Current Code: ${req.body.problemInfo?.code || 'Not provided'}
-            Language: ${req.body.problemInfo?.language || 'Not provided'}
-            Test Cases Passed: ${req.body.problemInfo?.testCasesPassed || 'Not provided'}
-            
-            User's Question: ${req.body.message}
-            
-            Please provide a helpful hint or explanation that:
-            1. Takes into account the user's current code and progress
-            2. Guides them without giving away the complete solution
-            3. Focuses on understanding the problem and suggesting approaches
-            4. Points out any potential issues in their current implementation
-            5. Suggests specific improvements or next steps
+            Question: ${req.body.message}
+
+            Rules:
+            1. Output exactly 1-3 sentences, no more
+            2. Focus on ONE immediate next step
+            3. If code exists, point out ONE specific issue or improvement
+            4. If no code, suggest ONE first step
+            5. Never reveal the complete solution
+            6. Format response as a single paragraph
+            7. Start with "Hint:" followed by your response
+            8. Be direct and actionable
+            9. Don't explain the problem, only guide the next step
+
+            Example format:
+            Hint: Consider using a hash map to store the frequency of each element. This will help you find duplicates in O(n) time.
         `;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        const hint = response.text();
+        const hint = response.text().trim();
 
+        // Ensure proper formatting
+        const formattedHint = hint.startsWith('Hint:') ? hint : `Hint: ${hint}`;
+        
         console.log('Generated hint successfully');
-        res.json({ hint });
+        res.json({ hint: formattedHint });
     } catch (error) {
         console.error('Error generating hint:', error);
         res.status(500).json({ 
