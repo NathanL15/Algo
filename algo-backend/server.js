@@ -56,12 +56,25 @@ app.post('/api/hints', async (req, res) => {
 
         const prompt = `
             You are an AI assistant helping with LeetCode problems.
-            Problem: ${req.body.problemInfo?.title || 'Unknown'}
-            Description: ${req.body.problemInfo?.description || 'Not provided'}
-            User's question: ${req.body.message}
             
-            Please provide a helpful hint or explanation that guides the user without giving away the complete solution.
-            Focus on understanding the problem and suggesting approaches.
+            Problem Information:
+            Title: ${req.body.problemInfo?.title || 'Unknown'}
+            URL: ${req.body.problemInfo?.url || 'Not provided'}
+            Description: ${req.body.problemInfo?.description || 'Not provided'}
+            
+            User's Current Progress:
+            Current Code: ${req.body.problemInfo?.code || 'Not provided'}
+            Language: ${req.body.problemInfo?.language || 'Not provided'}
+            Test Cases Passed: ${req.body.problemInfo?.testCasesPassed || 'Not provided'}
+            
+            User's Question: ${req.body.message}
+            
+            Please provide a helpful hint or explanation that:
+            1. Takes into account the user's current code and progress
+            2. Guides them without giving away the complete solution
+            3. Focuses on understanding the problem and suggesting approaches
+            4. Points out any potential issues in their current implementation
+            5. Suggests specific improvements or next steps
         `;
 
         const result = await model.generateContent(prompt);
