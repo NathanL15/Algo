@@ -4,19 +4,30 @@ const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
-app.use(cors());
+const port = process.env.PORT || 3000;
+
+// Configure CORS for production
+const corsOptions = {
+    origin: [
+        'chrome-extension://*',  // Allow Chrome extensions
+        'https://leetcode.com',  // Allow LeetCode
+        'http://localhost:3000'  // Allow local development
+    ],
+    methods: ['GET', 'POST'],
+    credentials: true
+};
+
+// Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// Add logging middleware
+// Logging middleware
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
 });
 
-// Add a GET route for the root path
+// Health check endpoint
 app.get('/', (req, res) => {
     res.json({ 
         status: 'Server is running',
@@ -27,40 +38,32 @@ app.get('/', (req, res) => {
     });
 });
 
+// Main endpoint for hints
 app.post('/api/hints', async (req, res) => {
     try {
-        const { message, problemInfo } = req.body;
-        
-        // Log incoming request data
         console.log('Received request:', {
-            message,
-            problemTitle: problemInfo?.title,
-            hasDescription: !!problemInfo?.description,
-            hasCode: !!problemInfo?.code
+            message: req.body.message,
+            hasProblemInfo: !!req.body.problemInfo,
+            problemTitle: req.body.problemInfo?.title
         });
 
         if (!process.env.GEMINI_API_KEY) {
             throw new Error('GEMINI_API_KEY is not set in environment variables');
         }
 
-        // Get the Gemini model
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-        // Create the prompt
         const prompt = `
-            You are an AI tutor helping with a LeetCode problem.
-            Problem Title: ${problemInfo.title}
-            Problem Description: ${problemInfo.description}
-            User's Current Code: ${problemInfo.code}
-            User's Question: ${message}
-
-            Provide ONE helpful hint that guides the user without giving away the solution.
-            Focus on the next logical step they should consider.
-            Never provide complete code solutions.
-            Keep your response concise and educational.
+            You are an AI assistant helping with LeetCode problems.
+            Problem: ${req.body.problemInfo?.title || 'Unknown'}
+            Description: ${req.body.problemInfo?.description || 'Not provided'}
+            User's question: ${req.body.message}
+            
+            Please provide a helpful hint or explanation that guides the user without giving away the complete solution.
+            Focus on understanding the problem and suggesting approaches.
         `;
 
-        // Generate response
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const hint = response.text();
@@ -68,11 +71,7 @@ app.post('/api/hints', async (req, res) => {
         console.log('Generated hint successfully');
         res.json({ hint });
     } catch (error) {
-        console.error('Detailed error:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
-        });
+        console.error('Error generating hint:', error);
         res.status(500).json({ 
             error: 'Failed to generate hint',
             details: error.message 
@@ -80,9 +79,20 @@ app.post('/api/hints', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log('Environment:', process.env.NODE_ENV);
-    console.log('Gemini API Key present:', !!process.env.GEMINI_API_KEY);
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+    res.status(500).json({ 
+        error: 'Internal server error',
+        details: err.message 
+    });
+});
+
+// Start server
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+    console.log('Environment:', {
+        NODE_ENV: process.env.NODE_ENV,
+        hasGeminiKey: !!process.env.GEMINI_API_KEY
+    });
 }); 

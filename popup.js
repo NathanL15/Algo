@@ -10,6 +10,7 @@ const sendButton = document.getElementById('sendButton');
 let currentProblemInfo = null;
 let retryCount = 0;
 const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -19,6 +20,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (!tab) {
             throw new Error('No active tab found');
+        }
+
+        // Check if we're on a LeetCode problem page
+        if (!tab.url?.includes('leetcode.com/problems/')) {
+            addMessage('Please navigate to a LeetCode problem page to use this extension.', 'bot');
+            return;
         }
 
         // Get problem info from content script
@@ -47,40 +54,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Get problem info with retry logic
 async function getProblemInfo(tabId) {
     return new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(tabId, { action: 'getProblemInfo' }, (response) => {
-            if (chrome.runtime.lastError) {
-                console.error('Error getting problem info:', chrome.runtime.lastError);
-                if (retryCount < MAX_RETRIES) {
-                    retryCount++;
-                    console.log(`Retrying... (${retryCount}/${MAX_RETRIES})`);
-                    setTimeout(() => getProblemInfo(tabId), 1000);
-                } else {
-                    addMessage('Error: Could not access LeetCode page. Please make sure you are on a problem page.', 'bot');
-                    reject(chrome.runtime.lastError);
+        const tryGetInfo = () => {
+            chrome.tabs.sendMessage(tabId, { action: 'getProblemInfo' }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('Error getting problem info:', chrome.runtime.lastError);
+                    if (retryCount < MAX_RETRIES) {
+                        retryCount++;
+                        console.log(`Retrying... (${retryCount}/${MAX_RETRIES})`);
+                        setTimeout(tryGetInfo, RETRY_DELAY);
+                    } else {
+                        addMessage('Error: Could not access LeetCode page. Please make sure you are on a problem page.', 'bot');
+                        reject(chrome.runtime.lastError);
+                    }
+                    return;
                 }
-                return;
-            }
-            
-            if (response) {
-                currentProblemInfo = response;
-                console.log('Problem info received:', {
-                    title: response.title,
-                    hasDescription: !!response.description,
-                    hasCode: !!response.code
-                });
-                resolve(response);
-            } else {
-                console.error('No problem info received');
-                if (retryCount < MAX_RETRIES) {
-                    retryCount++;
-                    console.log(`Retrying... (${retryCount}/${MAX_RETRIES})`);
-                    setTimeout(() => getProblemInfo(tabId), 1000);
+                
+                if (response) {
+                    currentProblemInfo = response;
+                    console.log('Problem info received:', {
+                        title: response.title,
+                        hasDescription: !!response.description,
+                        hasCode: !!response.code
+                    });
+                    resolve(response);
                 } else {
-                    addMessage('Error: Could not get problem information. Please make sure you are on a LeetCode problem page.', 'bot');
-                    reject(new Error('No problem info available'));
+                    console.error('No problem info received');
+                    if (retryCount < MAX_RETRIES) {
+                        retryCount++;
+                        console.log(`Retrying... (${retryCount}/${MAX_RETRIES})`);
+                        setTimeout(tryGetInfo, RETRY_DELAY);
+                    } else {
+                        addMessage('Error: Could not get problem information. Please make sure you are on a LeetCode problem page.', 'bot');
+                        reject(new Error('No problem info available'));
+                    }
                 }
-            }
-        });
+            });
+        };
+
+        tryGetInfo();
     });
 }
 
@@ -142,22 +153,27 @@ async function sendToBackend(message) {
         throw new Error('Backend API endpoint not configured');
     }
 
-    const response = await fetch(config.BACKEND_API_ENDPOINT, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            message,
-            problemInfo: currentProblemInfo
-        })
-    });
+    try {
+        const response = await fetch(config.BACKEND_API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message,
+                problemInfo: currentProblemInfo
+            })
+        });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || 'Failed to get response from backend');
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.details || 'Failed to get response from backend');
+        }
+
+        const data = await response.json();
+        return data.hint;
+    } catch (error) {
+        console.error('Backend error:', error);
+        throw new Error('Failed to connect to the backend server. Please make sure it is running.');
     }
-
-    const data = await response.json();
-    return data.hint;
 } 

@@ -5,7 +5,8 @@
   "description": "An AI-powered tutor that provides step-by-step hints for LeetCode problems",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
     "https://leetcode.com/*"
@@ -18,7 +19,8 @@
     {
       "matches": ["https://leetcode.com/problems/*"],
       "js": ["content.js"],
-      "css": ["styles.css"]
+      "css": ["styles.css"],
+      "run_at": "document_idle"
     }
   ],
   "background": {

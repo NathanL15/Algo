@@ -1,15 +1,15 @@
 // Configuration for the Algo! extension
 const config = {
     // Backend API endpoint
-    BACKEND_API_ENDPOINT: 'http://localhost:3000/api/hints',
+    backendApiEndpoint: 'https://algo-backend.onrender.com/api/hints',
     
     // Environment
-    ENV: 'development',
+    environment: 'production',
     
     // Feature flags
-    FEATURES: {
-        ENABLE_DEBUG_LOGGING: true,
-        ENABLE_ERROR_REPORTING: true
+    featureFlags: {
+        debug: false,
+        errorReporting: true
     }
 };
 
