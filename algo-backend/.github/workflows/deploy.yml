@@ -26,8 +26,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: algo-backend/package-lock.json
+        working-directory: algo-backend
 
 
       - name: Install dependencies
