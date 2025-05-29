@@ -45,9 +45,9 @@ jobs:
       run: gcloud auth configure-docker
 
     - name: Build and Push Container
-      run: |-
-        docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }} .
-        docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }}
+      run: |
+        docker build -t gcr.io/$PROJECT_ID/$SERVICE_NAME:latest .
+        docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
 
     - name: Deploy to Cloud Run
       uses: google-github-actions/deploy-cloudrun@v1
