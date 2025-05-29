@@ -27,6 +27,7 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
+      working-directory: algo-backend
 
     - name: Install dependencies
       run: npm ci
