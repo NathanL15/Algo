@@ -124,25 +124,39 @@ if (!window.__algoChatInjected) {
             // Get current code - try multiple methods
             let code = '';
             
-            // Method 1: Try to get code from Monaco editor's view-lines
-            const monacoEditor = document.querySelector('.monaco-editor');
-            if (monacoEditor) {
-                const viewLines = monacoEditor.querySelectorAll('.view-line');
-                if (viewLines.length > 0) {
-                    code = Array.from(viewLines)
-                        .map(line => {
-                            // Extract text content from spans within the line
-                            const spans = line.querySelectorAll('span');
-                            return Array.from(spans)
-                                .map(span => span.textContent)
-                                .join('');
-                        })
-                        .join('\n');
-                    console.log('Found code using Monaco view-lines:', code);
+            // Method 1: Try to get code using Monaco editor API
+            try {
+                if (window.monaco && window.monaco.editor) {
+                    const models = window.monaco.editor.getModels();
+                    if (models && models.length > 0) {
+                        code = models[0].getValue();
+                        console.log('Found code using Monaco editor API');
+                    }
+                }
+            } catch (error) {
+                console.log('Error accessing Monaco editor API:', error);
+            }
+
+            // Method 2: Try to get code from Monaco editor's view-lines (fallback)
+            if (!code) {
+                const monacoEditor = document.querySelector('.monaco-editor');
+                if (monacoEditor) {
+                    const viewLines = monacoEditor.querySelectorAll('.view-line');
+                    if (viewLines.length > 0) {
+                        code = Array.from(viewLines)
+                            .map(line => {
+                                const spans = line.querySelectorAll('span');
+                                return Array.from(spans)
+                                    .map(span => span.textContent)
+                                    .join('');
+                            })
+                            .join('\n');
+                        console.log('Found code using Monaco view-lines (fallback)');
+                    }
                 }
             }
 
-            // Method 2: Try to get code from editor container
+            // Method 3: Try to get code from editor container (last resort)
             if (!code) {
                 const editorContainer = document.querySelector('.editor-container');
                 if (editorContainer) {
@@ -156,45 +170,17 @@ if (!window.__algoChatInjected) {
                                     .join('');
                             })
                             .join('\n');
-                        console.log('Found code using editor container');
-                    }
-                }
-            }
-
-            // Method 3: Try to get code from any code-related element
-            if (!code) {
-                const codeSelectors = [
-                    'div[class*="editor"]',
-                    'div[class*="code"]',
-                    'pre[class*="code"]',
-                    'div[class*="solution"]'
-                ];
-                
-                for (const selector of codeSelectors) {
-                    const element = document.querySelector(selector);
-                    if (element) {
-                        const lines = element.querySelectorAll('.view-line, .line');
-                        if (lines.length > 0) {
-                            code = Array.from(lines)
-                                .map(line => {
-                                    const spans = line.querySelectorAll('span');
-                                    return Array.from(spans)
-                                        .map(span => span.textContent)
-                                        .join('');
-                                })
-                                .join('\n');
-                            console.log('Found code using selector:', selector);
-                            break;
-                        }
+                        console.log('Found code using editor container (last resort)');
                     }
                 }
             }
 
             // Log the code-related elements for debugging
             console.log('Code-related elements found:', {
+                hasMonacoAPI: !!(window.monaco && window.monaco.editor),
+                monacoModels: window.monaco?.editor?.getModels()?.length || 0,
                 monacoEditor: !!document.querySelector('.monaco-editor'),
                 viewLines: document.querySelectorAll('.view-line').length,
-                codeLines: document.querySelectorAll('.line').length,
                 extractedCode: code
             });
 
