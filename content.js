@@ -15,26 +15,50 @@ function createChatBubble() {
 
 // Get current problem information
 function getProblemInfo() {
-    const title = document.querySelector('[data-cy="question-title"]')?.textContent || '';
-    const description = document.querySelector('[data-cy="question-content"]')?.textContent || '';
-    const code = document.querySelector('.monaco-editor')?.textContent || '';
+    try {
+        // Wait for the page to be fully loaded
+        if (!document.querySelector('[data-cy="question-title"]')) {
+            console.log('Waiting for LeetCode page to load...');
+            return null;
+        }
 
-    return {
-        title,
-        description,
-        code
-    };
+        const title = document.querySelector('[data-cy="question-title"]')?.textContent?.trim() || '';
+        const description = document.querySelector('[data-cy="question-content"]')?.textContent?.trim() || '';
+        const code = document.querySelector('.monaco-editor')?.textContent?.trim() || '';
+
+        if (!title) {
+            console.log('Could not find problem title');
+            return null;
+        }
+
+        console.log('Found problem:', title);
+        return {
+            title,
+            description,
+            code
+        };
+    } catch (error) {
+        console.error('Error getting problem info:', error);
+        return null;
+    }
 }
 
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'getProblemInfo') {
-        sendResponse(getProblemInfo());
+        const info = getProblemInfo();
+        console.log('Sending problem info:', info);
+        sendResponse(info);
     }
+    return true; // Keep the message channel open for async response
 });
 
 // Initialize the chat bubble when the page loads
-createChatBubble();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', createChatBubble);
+} else {
+    createChatBubble();
+}
 
 // Add styles for the chat bubble
 const style = document.createElement('style');
