@@ -50,18 +50,16 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
-                       -t gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest .
-          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest
+          docker build -t us-central1-docker.pkg.dev/algo-461301/algo-backend/algo-backend:latest .
+          docker push us-central1-docker.pkg.dev/algo-461301/algo-backend/algo-backend:latest
         working-directory: algo-backend
+      
 
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
+        uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
-          image: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          env_vars: |
-            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-            NODE_ENV=production
+          image: us-central1-docker.pkg.dev/algo-461301/algo-backend/algo-backend:latest
+          flags: '--set-env-vars=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},NODE_ENV=production'
+      
