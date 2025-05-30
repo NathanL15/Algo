@@ -1,0 +1,32 @@
+{
+  "name": "algo",
+  "version": "1.0.0",
+  "description": "Your LeetCode Assistant",
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
+    "test": "jest",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@types/chrome": "^0.0.260"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.24",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "copy-webpack-plugin": "^12.0.2",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.0.0-beta.3",
+    "rimraf": "^5.0.5",
+    "ts-jest": "^29.1.2",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4"
+  }
+}

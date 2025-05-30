@@ -1,48 +1,118 @@
-# Algo! - LeetCode Smart Hint Chatbot
+# Algo! - Your LeetCode Assistant
 
-A Chrome extension that provides interactive, step-by-step hints to help users solve coding problems on LeetCode.
+A Chrome extension that provides AI-powered hints and guidance for LeetCode problems.
 
 ## Features
 
-- 🤖 AI-powered tutoring that provides personalized hints
-- 💡 Step-by-step guidance without giving away solutions
-- 🎯 Context-aware hints based on your current code
-- 💬 Interactive chat interface
-- 🎨 Modern, non-intrusive design
-
-## Installation
-
-1. Clone this repository
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable "Developer mode" in the top right
-4. Click "Load unpacked" and select the extension directory
-
-## Usage
-
-1. Navigate to any LeetCode problem page
-2. Click the Algo! chat bubble in the bottom right corner
-3. Ask for hints or type "next hint" to get guidance
-4. The AI will provide personalized hints based on your current code
+- Real-time problem analysis
+- Smart hint generation
+- Clean and modern UI
+- TypeScript support
 
 ## Development
 
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm (v7 or higher)
+
+### Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/algo.git
+cd algo
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Build the extension:
+```bash
+npm run build
+```
+
+4. Load the extension in Chrome:
+- Open Chrome and go to `chrome://extensions/`
+- Enable "Developer mode"
+- Click "Load unpacked"
+- Select the `dist` directory
+
+### Development Workflow
+
+- Run in development mode with hot reloading:
+```bash
+npm run dev
+```
+
+- Type checking:
+```bash
+npm run type-check
+```
+
+- Linting:
+```bash
+npm run lint
+```
+
+- Testing:
+```bash
+npm run test
+```
+
 ### Project Structure
 
-- `manifest.json` - Extension configuration
-- `popup.html` - Chat interface
-- `popup.js` - Chat functionality
-- `content.js` - Page interaction
-- `background.js` - Background processes
-- `styles.css` - Styling
+```
+algo/
+├── src/
+│   ├── content.ts      # Content script
+│   ├── background.ts   # Background script
+│   ├── popup.ts        # Popup script
+│   ├── types.ts        # Shared types
+│   └── test/           # Test files
+├── dist/               # Compiled files
+├── manifest.json       # Extension manifest
+├── popup.html         # Popup HTML
+├── styles.css         # Styles
+└── icons/             # Extension icons
+```
 
-### Backend Integration
+### TypeScript Migration
 
-The extension requires a backend service that integrates with Gemini AI. Update the `API_ENDPOINT` in `popup.js` with your backend service URL.
+The project has been migrated to TypeScript for better type safety and developer experience. Key changes include:
+
+1. Added TypeScript configuration (`tsconfig.json`)
+2. Added type definitions for Chrome API (`@types/chrome`)
+3. Converted JavaScript files to TypeScript
+4. Added shared types in `types.ts`
+5. Updated build process with webpack and ts-loader
+6. Added ESLint configuration for TypeScript
+7. Added Jest configuration for TypeScript testing
+
+### Building for Production
+
+1. Clean the build directory:
+```bash
+npm run clean
+```
+
+2. Build the extension:
+```bash
+npm run build
+```
+
+The compiled files will be in the `dist` directory.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-MIT License - feel free to use this project for your own purposes. 
+MIT 
