@@ -13,7 +13,7 @@ if (!window.__algoChatInjected) {
     chat.id = 'algo-chat-dropdown';
     chat.innerHTML = `
         <div class="algo-chat-header">
-            <span>Algo! Assistant</span>
+            <span>Algo!</span>
             <button id="algo-chat-close">&times;</button>
         </div>
         <div class="algo-chat-messages"></div>
