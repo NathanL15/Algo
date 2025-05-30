@@ -14,7 +14,8 @@ function initialize(): void {
             #algo-chat-close { background: none; border: none; color: #E2E8F0; font-size: 20px; cursor: pointer; padding: 4px; transition: color 0.2s; }
             #algo-chat-close:hover { color: #4FD1C5; }
             .algo-chat-messages { flex: 1; padding: 12px; overflow-y: auto; background-color: #1A202C; }
-            .algo-message { margin-bottom: 12px; padding: 12px; border-radius: 8px; max-width: 85%; line-height: 1.6; font-size: 13px; border: 1px solid rgba(79, 209, 197, 0.1); white-space: pre-wrap; }
+            .algo-message { margin-bottom: 12px; padding: 12px; border-radius: 8px; max-width: 85%; line-height: 1.6; font-size: 13px; border: 1px solid rgba(79, 209, 197, 0.1); white-space: pre-wrap; opacity: 0; transform: translateY(10px); animation: messageAppear 0.3s ease forwards; }
+            @keyframes messageAppear { to { opacity: 1; transform: translateY(0); } }
             .algo-message.user { background-color: rgba(45, 55, 72, 0.95); color: #E2E8F0; margin-left: auto; border: 1px solid rgba(79, 209, 197, 0.2); }
             .algo-message.assistant { background-color: rgba(45, 55, 72, 0.95); color: #E2E8F0; margin-right: auto; border: 1px solid rgba(79, 209, 197, 0.2); }
             .algo-message p { margin: 0 0 8px 0; }
@@ -33,6 +34,11 @@ function initialize(): void {
             .algo-chat-messages::-webkit-scrollbar-track { background: #2D3748; border-radius: 3px; }
             .algo-chat-messages::-webkit-scrollbar-thumb { background: #4FD1C5; border-radius: 3px; }
             .algo-chat-messages::-webkit-scrollbar-thumb:hover { background: #38B2AC; }
+            .typing-indicator { display: inline-block; margin-right: 8px; }
+            .typing-indicator span { display: inline-block; width: 4px; height: 4px; background-color: #4FD1C5; border-radius: 50%; margin: 0 1px; animation: typing 1s infinite; }
+            .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+            .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+            @keyframes typing { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
         `;
         document.head.appendChild(style);
     }
@@ -86,29 +92,39 @@ if (!window.__algoChatInjected) {
         const div = document.createElement('div');
         div.className = 'algo-message ' + role;
         
-        // Convert markdown-style formatting
-        let formattedText = text
-            // Convert code blocks
-            .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-            // Convert inline code
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
-            // Convert lists
-            .replace(/^\s*[-*+]\s+(.+)$/gm, '<li>$1</li>')
-            // Convert paragraphs
-            .replace(/\n\n/g, '</p><p>')
-            // Convert line breaks
-            .replace(/\n/g, '<br>');
-
-        // Wrap in paragraph tags if not already wrapped
-        if (!formattedText.startsWith('<p>')) {
-            formattedText = '<p>' + formattedText + '</p>';
-        }
+        // Split text into sentences and wrap each in a paragraph
+        const sentences = text.split(/(?<=[.!?])\s+/);
+        const formattedText = sentences
+            .map(sentence => {
+                // Convert markdown-style formatting for each sentence
+                let formatted = sentence
+                    // Convert code blocks
+                    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+                    // Convert inline code
+                    .replace(/`([^`]+)`/g, '<code>$1</code>')
+                    // Convert lists
+                    .replace(/^\s*[-*+]\s+(.+)$/gm, '<li>$1</li>');
+                
+                return `<p>${formatted}</p>`;
+            })
+            .join('');
 
         div.innerHTML = formattedText;
         messages?.appendChild(div);
         if (messages) {
             messages.scrollTop = messages.scrollHeight;
         }
+    };
+
+    const showTypingIndicator = (): HTMLDivElement => {
+        const indicator = document.createElement('div');
+        indicator.className = 'algo-message assistant typing-indicator';
+        indicator.innerHTML = '<span></span><span></span><span></span>';
+        messages?.appendChild(indicator);
+        if (messages) {
+            messages.scrollTop = messages.scrollHeight;
+        }
+        return indicator;
     };
 
     const getProblemInfo = (): ProblemInfo | null => {
@@ -257,6 +273,10 @@ if (!window.__algoChatInjected) {
             if (!msg) return;
             addMessage('user', msg);
             input.value = '';
+            
+            // Show typing indicator
+            const typingIndicator = showTypingIndicator();
+            
             try {
                 const res = await fetch('https://algo-de3g.onrender.com/api/hints', {
                     method: 'POST',
@@ -264,8 +284,12 @@ if (!window.__algoChatInjected) {
                     body: JSON.stringify({ message: msg, problemInfo: getProblemInfo() })
                 });
                 const data = await res.json();
+                
+                // Remove typing indicator and show response
+                typingIndicator.remove();
                 addMessage('assistant', data.hint || 'No hint received.');
             } catch (e) {
+                typingIndicator.remove();
                 addMessage('assistant', 'Error getting hint.');
             }
         };

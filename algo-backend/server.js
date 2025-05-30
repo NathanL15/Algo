@@ -64,7 +64,7 @@ app.post('/api/hints', async (req, res) => {
 
             Guidelines:
             1. Respond like you're tutoring a peer — casual but clear.
-            2. Limit your reply to 1–3 sentences.
+            2. Limit your reply to 1–3 concise sentences.
             3. Focus on ONE actionable next step or core insight.
             4. If code is provided, highlight ONE specific line or logic choice to revisit.
             5. If no code is provided, suggest ONE natural starting point.
