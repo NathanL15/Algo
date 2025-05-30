@@ -77,7 +77,7 @@ app.post('/api/hints', async (req, res) => {
                - For debugging: Identify ONE likely issue
                - For optimization: Suggest ONE efficiency improvement
                - For general questions: Provide ONE clear direction
-               - For user unsure about the hint: Provide an explanation of the hint and what it means for the problem
+               - For user asking how or I dont know to the question provided by the hint: Provide the answer to the respective hint
             9. Don't re-explain the problem; assume they already understand it.
 
             Example responses:
