@@ -14,9 +14,16 @@ function initialize(): void {
             #algo-chat-close { background: none; border: none; color: #E2E8F0; font-size: 20px; cursor: pointer; padding: 4px; transition: color 0.2s; }
             #algo-chat-close:hover { color: #4FD1C5; }
             .algo-chat-messages { flex: 1; padding: 12px; overflow-y: auto; background-color: #1A202C; }
-            .algo-message { margin-bottom: 8px; padding: 10px; border-radius: 8px; max-width: 85%; line-height: 1.4; font-size: 13px; border: 1px solid rgba(79, 209, 197, 0.1); }
+            .algo-message { margin-bottom: 12px; padding: 12px; border-radius: 8px; max-width: 85%; line-height: 1.6; font-size: 13px; border: 1px solid rgba(79, 209, 197, 0.1); white-space: pre-wrap; }
             .algo-message.user { background-color: rgba(45, 55, 72, 0.95); color: #E2E8F0; margin-left: auto; border: 1px solid rgba(79, 209, 197, 0.2); }
             .algo-message.assistant { background-color: rgba(45, 55, 72, 0.95); color: #E2E8F0; margin-right: auto; border: 1px solid rgba(79, 209, 197, 0.2); }
+            .algo-message p { margin: 0 0 8px 0; }
+            .algo-message p:last-child { margin-bottom: 0; }
+            .algo-message code { background-color: rgba(0, 0, 0, 0.2); padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+            .algo-message pre { background-color: rgba(0, 0, 0, 0.2); padding: 8px; border-radius: 4px; margin: 8px 0; overflow-x: auto; }
+            .algo-message pre code { background-color: transparent; padding: 0; }
+            .algo-message ul, .algo-message ol { margin: 8px 0; padding-left: 20px; }
+            .algo-message li { margin: 4px 0; }
             .algo-chat-input { padding: 12px; background-color: rgba(45, 55, 72, 0.95); border-radius: 0 0 12px 12px; display: flex; gap: 8px; border-top: 1px solid rgba(79, 209, 197, 0.2); align-items: center; }
             .algo-chat-input textarea { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #4A5568; background-color: #1A202C; color: #E2E8F0; resize: none; font-family: inherit; font-size: 14px; line-height: 1.4; transition: border-color 0.2s; height: 42px; min-height: 42px; max-height: 42px; }
             .algo-chat-input textarea:focus { outline: none; border-color: #4FD1C5; }
@@ -78,7 +85,26 @@ if (!window.__algoChatInjected) {
     const addMessage = (role: 'user' | 'assistant', text: string): void => {
         const div = document.createElement('div');
         div.className = 'algo-message ' + role;
-        div.textContent = text;
+        
+        // Convert markdown-style formatting
+        let formattedText = text
+            // Convert code blocks
+            .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+            // Convert inline code
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            // Convert lists
+            .replace(/^\s*[-*+]\s+(.+)$/gm, '<li>$1</li>')
+            // Convert paragraphs
+            .replace(/\n\n/g, '</p><p>')
+            // Convert line breaks
+            .replace(/\n/g, '<br>');
+
+        // Wrap in paragraph tags if not already wrapped
+        if (!formattedText.startsWith('<p>')) {
+            formattedText = '<p>' + formattedText + '</p>';
+        }
+
+        div.innerHTML = formattedText;
         messages?.appendChild(div);
         if (messages) {
             messages.scrollTop = messages.scrollHeight;
