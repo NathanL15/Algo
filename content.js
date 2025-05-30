@@ -308,29 +308,167 @@ function initialize() {
         const style = document.createElement('style');
         style.id = 'algo-chat-styles';
         style.textContent = `
-            #algo-chat-bubble {
+            #algo-chat-fab {
                 position: fixed;
                 bottom: 20px;
                 right: 20px;
                 width: 60px;
                 height: 60px;
-                background-color: #2563eb;
+                background-color: #2D3748;
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-                transition: transform 0.2s;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                transition: all 0.2s ease;
+                z-index: 10000;
+                border: 2px solid #4FD1C5;
+            }
+
+            #algo-chat-fab:hover {
+                transform: scale(1.1);
+                background-color: #1A202C;
+                box-shadow: 0 6px 16px rgba(79, 209, 197, 0.2);
+            }
+
+            #algo-chat-dropdown {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 300px;
+                height: 450px;
+                background-color: #1A202C;
+                border-radius: 12px;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+                border: 1px solid #2D3748;
                 z-index: 10000;
             }
 
-            #algo-chat-bubble:hover {
-                transform: scale(1.1);
+            .algo-chat-header {
+                padding: 12px;
+                background-color: #2D3748;
+                border-radius: 12px 12px 0 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid #4FD1C5;
             }
 
-            .bubble-icon {
-                font-size: 24px;
+            .algo-chat-header span {
+                color: #E2E8F0;
+                font-weight: 600;
+                font-size: 14px;
+            }
+
+            #algo-chat-close {
+                background: none;
+                border: none;
+                color: #E2E8F0;
+                font-size: 20px;
+                cursor: pointer;
+                padding: 4px;
+                transition: color 0.2s;
+            }
+
+            #algo-chat-close:hover {
+                color: #4FD1C5;
+            }
+
+            .algo-chat-messages {
+                flex: 1;
+                padding: 12px;
+                overflow-y: auto;
+                background-color: #1A202C;
+            }
+
+            .algo-message {
+                margin-bottom: 8px;
+                padding: 10px;
+                border-radius: 8px;
+                max-width: 85%;
+                line-height: 1.4;
+                font-size: 13px;
+            }
+
+            .algo-message.user {
+                background-color: #2D3748;
+                color: #E2E8F0;
+                margin-left: auto;
+                border: 1px solid #4FD1C5;
+            }
+
+            .algo-message.assistant {
+                background-color: #2D3748;
+                color: #E2E8F0;
+                margin-right: auto;
+                border: 1px solid #4FD1C5;
+            }
+
+            .algo-chat-input {
+                padding: 12px;
+                background-color: #2D3748;
+                border-radius: 0 0 12px 12px;
+                display: flex;
+                gap: 8px;
+                border-top: 1px solid #4FD1C5;
+                align-items: center;
+            }
+
+            .algo-chat-input textarea {
+                flex: 1;
+                padding: 8px 12px;
+                border-radius: 8px;
+                border: 1px solid #4A5568;
+                background-color: #1A202C;
+                color: #E2E8F0;
+                resize: none;
+                font-family: inherit;
+                font-size: 14px;
+                line-height: 1.4;
+                transition: border-color 0.2s;
+                height: 42px;
+                min-height: 42px;
+                max-height: 42px;
+            }
+
+            .algo-chat-input button {
+                padding: 6px 12px;
+                background-color: #4FD1C5;
+                color: #1A202C;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: all 0.2s;
+                height: 42px;
+                font-size: 13px;
+            }
+
+            .algo-chat-input button:hover {
+                background-color: #38B2AC;
+                transform: translateY(-1px);
+            }
+
+            /* Scrollbar styling */
+            .algo-chat-messages::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .algo-chat-messages::-webkit-scrollbar-track {
+                background: #2D3748;
+                border-radius: 3px;
+            }
+
+            .algo-chat-messages::-webkit-scrollbar-thumb {
+                background: #4FD1C5;
+                border-radius: 3px;
+            }
+
+            .algo-chat-messages::-webkit-scrollbar-thumb:hover {
+                background: #38B2AC;
             }
         `;
         document.head.appendChild(style);
