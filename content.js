@@ -338,23 +338,24 @@ function initialize() {
                 right: 20px;
                 width: 300px;
                 height: 450px;
-                background-color: #1A202C;
+                background-color: rgba(26, 32, 44, 0.95);
                 border-radius: 12px;
                 display: flex;
                 flex-direction: column;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-                border: 1px solid #2D3748;
+                box-shadow: 0 4px 12px rgba(79, 209, 197, 0.1);
+                border: 1px solid rgba(79, 209, 197, 0.2);
                 z-index: 10000;
+                backdrop-filter: blur(8px);
             }
 
             .algo-chat-header {
                 padding: 12px;
-                background-color: #2D3748;
+                background-color: rgba(45, 55, 72, 0.95);
                 border-radius: 12px 12px 0 0;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                border-bottom: 1px solid #4FD1C5;
+                border-bottom: 1px solid rgba(79, 209, 197, 0.2);
             }
 
             .algo-chat-header span {
@@ -391,29 +392,30 @@ function initialize() {
                 max-width: 85%;
                 line-height: 1.4;
                 font-size: 13px;
+                border: 1px solid rgba(79, 209, 197, 0.1);
             }
 
             .algo-message.user {
-                background-color: #2D3748;
+                background-color: rgba(45, 55, 72, 0.95);
                 color: #E2E8F0;
                 margin-left: auto;
-                border: 1px solid #4FD1C5;
+                border: 1px solid rgba(79, 209, 197, 0.2);
             }
 
             .algo-message.assistant {
-                background-color: #2D3748;
+                background-color: rgba(45, 55, 72, 0.95);
                 color: #E2E8F0;
                 margin-right: auto;
-                border: 1px solid #4FD1C5;
+                border: 1px solid rgba(79, 209, 197, 0.2);
             }
 
             .algo-chat-input {
                 padding: 12px;
-                background-color: #2D3748;
+                background-color: rgba(45, 55, 72, 0.95);
                 border-radius: 0 0 12px 12px;
                 display: flex;
                 gap: 8px;
-                border-top: 1px solid #4FD1C5;
+                border-top: 1px solid rgba(79, 209, 197, 0.2);
                 align-items: center;
             }
 
