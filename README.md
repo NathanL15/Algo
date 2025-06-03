@@ -13,7 +13,7 @@ A Chrome extension that provides AI-powered hints and guidance for LeetCode prob
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
+ - Node.js (v18 or higher)
 - npm (v7 or higher)
 
 ### Setup
