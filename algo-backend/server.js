@@ -41,17 +41,16 @@ app.get('/', (req, res) => {
 
 // Main endpoint for hints
 app.post('/api/hints', async (req, res) => {
+    if (!req.body?.message) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+
     try {
         console.log('Received request:', {
             message: req.body.message,
             hasProblemInfo: !!req.body.problemInfo,
             problemTitle: req.body.problemInfo?.title
         });
-
-        // Validate input
-        if (!req.body.message) {
-            return res.status(400).json({ error: 'Message is required' });
-        }
 
         if (!process.env.GEMINI_API_KEY) {
             throw new Error('GEMINI_API_KEY is not set in environment variables');
