@@ -15,4 +15,13 @@ describe('Redis Cache Service', () => {
     const cached = await cache.getCachedHint(testKey);
     expect(cached).toBeNull();
   });
-}); 
+
+  afterAll(async () => {
+    // Close the Redis connection to prevent open handles
+    if (cache.redis && typeof cache.redis.quit === 'function') {
+      await cache.redis.quit();
+    } else if (cache.redis && typeof cache.redis.disconnect === 'function') {
+      cache.redis.disconnect();
+    }
+  });
+});
