@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const cache = require('./src/services/cache');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -51,6 +52,15 @@ app.post('/api/hints', async (req, res) => {
             throw new Error('GEMINI_API_KEY is not set in environment variables');
         }
 
+        // Check cache first
+        const problemId = req.body.problemInfo?.id || 'default';
+        const cachedHint = await cache.getCachedHint(problemId);
+        
+        if (cachedHint) {
+            console.log('Returning cached hint');
+            return res.json({ hint: cachedHint });
+        }
+
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -93,7 +103,10 @@ app.post('/api/hints', async (req, res) => {
         const response = await result.response;
         const hint = response.text().trim();
         
-        console.log('Generated response successfully');
+        // Cache the hint
+        await cache.cacheHint(problemId, hint);
+        
+        console.log('Generated and cached response successfully');
         res.json({ hint });
     } catch (error) {
         console.error('Error generating hint:', error);
@@ -119,7 +132,8 @@ if (require.main === module) {
         console.log(`Server running on port ${port}`);
         console.log('Environment:', {
             NODE_ENV: process.env.NODE_ENV,
-            hasGeminiKey: !!process.env.GEMINI_API_KEY
+            hasGeminiKey: !!process.env.GEMINI_API_KEY,
+            hasRedis: !!process.env.REDIS_HOST
         });
     });
 
