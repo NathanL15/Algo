@@ -48,6 +48,11 @@ app.post('/api/hints', async (req, res) => {
             problemTitle: req.body.problemInfo?.title
         });
 
+        // Validate input
+        if (!req.body.message) {
+            return res.status(400).json({ error: 'Message is required' });
+        }
+
         if (!process.env.GEMINI_API_KEY) {
             throw new Error('GEMINI_API_KEY is not set in environment variables');
         }
