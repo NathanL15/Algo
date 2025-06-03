@@ -22,5 +22,6 @@ describe('Server Endpoints', () => {
   it('should return 400 for hints endpoint without message', async () => {
     const res = await request(app).post('/api/hints');
     expect(res.statusCode).toEqual(400);
+    expect(res.body).toHaveProperty('error', 'Message is required');
   });
 }); 
