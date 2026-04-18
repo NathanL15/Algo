@@ -1,7 +1,14 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
+
+;// ./src/config.ts
+const fallbackUrl = 'http://localhost:3000';
+const rawApiBaseUrl =  true ? "http://localhost:3000" : 0;
+const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
+
+;// ./src/content.ts
+
 function initialize() {
-    // Add styles only if they don't exist
     if (!document.getElementById('algo-chat-styles')) {
         const style = document.createElement('style');
         style.id = 'algo-chat-styles';
@@ -14,7 +21,8 @@ function initialize() {
             #algo-chat-close { background: none; border: none; color: #E2E8F0; font-size: 20px; cursor: pointer; padding: 4px; transition: color 0.2s; }
             #algo-chat-close:hover { color: #4FD1C5; }
             .algo-chat-messages { flex: 1; padding: 12px; overflow-y: auto; background-color: #1A202C; }
-            .algo-message { margin-bottom: 8px; padding: 10px; border-radius: 8px; max-width: 85%; line-height: 1.4; font-size: 13px; border: 1px solid rgba(79, 209, 197, 0.1); }
+            .algo-message { margin-bottom: 12px; padding: 12px; border-radius: 8px; max-width: 85%; line-height: 1.6; font-size: 13px; border: 1px solid rgba(79, 209, 197, 0.1); white-space: pre-wrap; opacity: 0; transform: translateY(10px); animation: messageAppear 0.3s ease forwards; }
+            @keyframes messageAppear { to { opacity: 1; transform: translateY(0); } }
             .algo-message.user { background-color: rgba(45, 55, 72, 0.95); color: #E2E8F0; margin-left: auto; border: 1px solid rgba(79, 209, 197, 0.2); }
             .algo-message.assistant { background-color: rgba(45, 55, 72, 0.95); color: #E2E8F0; margin-right: auto; border: 1px solid rgba(79, 209, 197, 0.2); }
             .algo-chat-input { padding: 12px; background-color: rgba(45, 55, 72, 0.95); border-radius: 0 0 12px 12px; display: flex; gap: 8px; border-top: 1px solid rgba(79, 209, 197, 0.2); align-items: center; }
@@ -26,19 +34,21 @@ function initialize() {
             .algo-chat-messages::-webkit-scrollbar-track { background: #2D3748; border-radius: 3px; }
             .algo-chat-messages::-webkit-scrollbar-thumb { background: #4FD1C5; border-radius: 3px; }
             .algo-chat-messages::-webkit-scrollbar-thumb:hover { background: #38B2AC; }
+            .typing-indicator { display: inline-block; margin-right: 8px; }
+            .typing-indicator span { display: inline-block; width: 4px; height: 4px; background-color: #4FD1C5; border-radius: 50%; margin: 0 1px; animation: typing 1s infinite; }
+            .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+            .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+            @keyframes typing { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
         `;
         document.head.appendChild(style);
     }
 }
-// Only inject once
 if (!window.__algoChatInjected) {
     window.__algoChatInjected = true;
-    // Create floating button
     const button = document.createElement('div');
     button.id = 'algo-chat-fab';
     button.innerHTML = '<span>💬</span>';
     document.body.appendChild(button);
-    // Create chat container (hidden by default)
     const chat = document.createElement('div');
     chat.id = 'algo-chat-dropdown';
     chat.innerHTML = `
@@ -54,28 +64,34 @@ if (!window.__algoChatInjected) {
     `;
     chat.style.display = 'none';
     document.body.appendChild(chat);
-    // Show chat on button click
     button.onclick = () => {
         chat.style.display = 'flex';
         button.style.display = 'none';
     };
-    // Hide chat on close
     chat.querySelector('#algo-chat-close')?.addEventListener('click', () => {
         chat.style.display = 'none';
         button.style.display = 'flex';
     });
-    // Send message
     const sendBtn = chat.querySelector('.algo-chat-input button');
     const input = chat.querySelector('.algo-chat-input textarea');
     const messages = chat.querySelector('.algo-chat-messages');
+    const scrollMessages = () => {
+        messages.scrollTop = messages.scrollHeight;
+    };
     const addMessage = (role, text) => {
         const div = document.createElement('div');
         div.className = 'algo-message ' + role;
         div.textContent = text;
-        messages?.appendChild(div);
-        if (messages) {
-            messages.scrollTop = messages.scrollHeight;
-        }
+        messages.appendChild(div);
+        scrollMessages();
+    };
+    const showTypingIndicator = () => {
+        const indicator = document.createElement('div');
+        indicator.className = 'algo-message assistant typing-indicator';
+        indicator.innerHTML = '<span></span><span></span><span></span>';
+        messages.appendChild(indicator);
+        scrollMessages();
+        return indicator;
     };
     const getProblemInfo = () => {
         try {
@@ -90,7 +106,6 @@ if (!window.__algoChatInjected) {
             let testCasesPassed = '';
             let difficulty = '';
             const tags = [];
-            // Get problem title
             const titleSelectors = [
                 '[data-cy="question-title"]',
                 'div[class*="title"]',
@@ -104,7 +119,6 @@ if (!window.__algoChatInjected) {
                     break;
                 }
             }
-            // Get problem description
             const descriptionSelectors = [
                 '[data-cy="question-content"]',
                 'div[class*="content"]',
@@ -118,7 +132,6 @@ if (!window.__algoChatInjected) {
                     break;
                 }
             }
-            // Get current code
             try {
                 if (window.monaco?.editor) {
                     const models = window.monaco.editor.getModels();
@@ -127,7 +140,7 @@ if (!window.__algoChatInjected) {
                     }
                 }
             }
-            catch (error) { /* empty */ }
+            catch { }
             if (!code) {
                 const monacoEditor = document.querySelector('.monaco-editor');
                 if (monacoEditor) {
@@ -144,7 +157,6 @@ if (!window.__algoChatInjected) {
                     }
                 }
             }
-            // Get programming language
             const languageSelectors = [
                 '.select-dropdown',
                 'div[class*="language-select"]',
@@ -158,7 +170,6 @@ if (!window.__algoChatInjected) {
                     break;
                 }
             }
-            // Get test cases passed
             const testCasesSelectors = [
                 '[data-cy="test-cases-passed"]',
                 'div[class*="test-cases"]',
@@ -172,7 +183,6 @@ if (!window.__algoChatInjected) {
                     break;
                 }
             }
-            // Get difficulty level
             const difficultySelectors = [
                 '[diff]',
                 'div[class*="difficulty"]',
@@ -186,7 +196,6 @@ if (!window.__algoChatInjected) {
                     break;
                 }
             }
-            // Get problem tags/categories
             const tagSelectors = [
                 '.tag__2PqS',
                 'div[class*="tag"]',
@@ -215,7 +224,7 @@ if (!window.__algoChatInjected) {
                 tags
             };
         }
-        catch (error) {
+        catch {
             return null;
         }
     };
@@ -226,16 +235,19 @@ if (!window.__algoChatInjected) {
                 return;
             addMessage('user', msg);
             input.value = '';
+            const typingIndicator = showTypingIndicator();
             try {
-                const res = await fetch('https://algo-de3g.onrender.com/api/hints', {
+                const res = await fetch(`${API_BASE_URL}/api/hints`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: msg, problemInfo: getProblemInfo() })
                 });
                 const data = await res.json();
+                typingIndicator.remove();
                 addMessage('assistant', data.hint || 'No hint received.');
             }
             catch (e) {
+                typingIndicator.remove();
                 addMessage('assistant', 'Error getting hint.');
             }
         };
@@ -246,15 +258,13 @@ if (!window.__algoChatInjected) {
             }
         });
     }
-    // Listen for messages from the popup
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'getProblemInfo') {
             const info = getProblemInfo();
             sendResponse(info);
         }
-        return true; // Keep the message channel open for async response
+        return true;
     });
-    // Initialize when the page is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initialize);
     }
@@ -262,7 +272,6 @@ if (!window.__algoChatInjected) {
         initialize();
     }
 }
-
 
 /******/ })()
 ;

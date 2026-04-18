@@ -1,19 +1,21 @@
-# Algo! - Your LeetCode Assistant
+# Algo!
 
-A Chrome extension that provides AI-powered hints and guidance for LeetCode problems.
+A Chrome extension and Node.js backend for LeetCode hints with semantic retrieval.
 
 ## Features
 
 - Real-time problem analysis
-- Smart hint generation
+- Smart hint generation with Google Gemini Flash
+- RAG retrieval with Gemini embeddings and Redis HNSW vector indexing
+- Top-k similar problem injection into prompts
 - Clean and modern UI
-- TypeScript support
+- Cloud Run deployment via Docker and GitHub Actions
 
 ## Development
 
 ### Prerequisites
 
- - Node.js (v18 or higher)
+- Node.js (v18 or higher)
 - npm (v7 or higher)
 
 ### Setup
@@ -27,6 +29,7 @@ cd algo
 2. Install dependencies:
 ```bash
 npm install
+cd algo-backend && npm install
 ```
 
 3. Build the extension:
@@ -62,6 +65,18 @@ npm run lint
 npm run test
 ```
 
+- Backend tests:
+```bash
+cd algo-backend
+npm test
+```
+
+- Run backend benchmark:
+```bash
+cd algo-backend
+npm run benchmark
+```
+
 ### Project Structure
 
 ```
@@ -70,8 +85,16 @@ algo/
 │   ├── content.ts      # Content script
 │   ├── background.ts   # Background script
 │   ├── popup.ts        # Popup script
+│   ├── config.ts       # API base URL config
 │   ├── types.ts        # Shared types
 │   └── test/           # Test files
+├── algo-backend/
+│   ├── server.js       # Express API
+│   ├── src/services/cache.js       # Redis hint cache
+│   ├── src/services/vectorStore.js # Redis HNSW vector search
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   └── scripts/benchmark.js
 ├── dist/               # Compiled files
 ├── manifest.json       # Extension manifest
 ├── popup.html         # Popup HTML
@@ -79,17 +102,37 @@ algo/
 └── icons/             # Extension icons
 ```
 
-### TypeScript Migration
+## Environment
 
-The project has been migrated to TypeScript for better type safety and developer experience. Key changes include:
+### Extension
 
-1. Added TypeScript configuration (`tsconfig.json`)
-2. Added type definitions for Chrome API (`@types/chrome`)
-3. Converted JavaScript files to TypeScript
-4. Added shared types in `types.ts`
-5. Updated build process with webpack and ts-loader
-6. Added ESLint configuration for TypeScript
-7. Added Jest configuration for TypeScript testing
+Set the backend API URL at build time.
+
+```bash
+ALGO_API_BASE_URL=https://YOUR_CLOUD_RUN_URL npm run build
+```
+
+### Backend
+
+Required backend environment variables:
+
+- GEMINI_API_KEY
+- REDIS_HOST
+- REDIS_PORT
+
+Optional backend environment variables:
+
+- REDIS_PASSWORD
+- EMBEDDING_DIM (default: 3072)
+- RAG_TOP_K (default: 3)
+
+## Backend API
+
+- GET /healthz
+- GET /readyz
+- POST /api/index-problem
+- POST /api/rag/search
+- POST /api/hints
 
 ### Building for Production
 

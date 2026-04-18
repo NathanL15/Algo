@@ -3,15 +3,21 @@ const express = require('express');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const cache = require('./src/services/cache');
+const vectorStore = require('./src/services/vectorStore');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const TOP_K = Number(process.env.RAG_TOP_K || 3);
+const EMBEDDING_MODEL = 'gemini-embedding-001';
+const GENERATION_MODEL = 'gemini-2.5-flash';
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const pendingHintRequests = new Map();
 
 const corsOptions = {
     origin: [
-        'chrome-extension://*',  // allow chrome extensions
-        'https://leetcode.com',  // allow leetcode
-        'http://localhost:3000'  // allow local development
+        'chrome-extension://*',
+        'https://leetcode.com',
+        'http://localhost:3000'
     ],
     methods: ['GET', 'POST'],
     credentials: true
@@ -25,14 +31,190 @@ app.use((req, res, next) => {
     next();
 });
 
+function hashText(value) {
+    let hash = 0;
+    for (let i = 0; i < value.length; i += 1) {
+        hash = ((hash << 5) - hash) + value.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash).toString(36);
+}
+
+function normalizeProblemId(problemInfo = {}) {
+    if (problemInfo.id) {
+        return String(problemInfo.id);
+    }
+
+    if (problemInfo.url) {
+        const urlPart = String(problemInfo.url).split('/problems/')[1];
+        if (urlPart) {
+            return urlPart.split('/')[0];
+        }
+    }
+
+    if (problemInfo.title) {
+        return String(problemInfo.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    }
+
+    return `problem-${Date.now()}`;
+}
+
+function buildProblemDocument(problemInfo = {}) {
+    const safeTags = Array.isArray(problemInfo.tags) ? problemInfo.tags.join(', ') : '';
+    return [
+        `Title: ${problemInfo.title || ''}`,
+        `Description: ${problemInfo.description || ''}`,
+        `Difficulty: ${problemInfo.difficulty || ''}`,
+        `Language: ${problemInfo.language || ''}`,
+        `Tags: ${safeTags}`,
+        `Code: ${problemInfo.code || ''}`
+    ].join('\n');
+}
+
+function ensureGeminiConfigured() {
+    if (!process.env.GEMINI_API_KEY) {
+        throw new Error('GEMINI_API_KEY is not set in environment variables');
+    }
+}
+
+function buildCacheKey(problemInfo, message) {
+    return `${normalizeProblemId(problemInfo)}:${hashText(message)}`;
+}
+
+async function getEmbedding(text) {
+    const embeddingModel = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
+    const result = await embeddingModel.embedContent(text);
+    const values = result?.embedding?.values || result?.embedding || result?.embeddings?.[0]?.values;
+
+    if (!Array.isArray(values) || values.length === 0) {
+        throw new Error('Failed to compute embedding vector');
+    }
+
+    return values;
+}
+
+function formatSimilarContext(similarProblems) {
+    if (!Array.isArray(similarProblems) || similarProblems.length === 0) {
+        return 'No similar indexed problems found yet.';
+    }
+
+    return similarProblems
+        .map((item, index) => {
+            const difficulty = item.difficulty || 'Unknown';
+            const tags = item.tags || 'None';
+            const description = item.description || '';
+            const shortDescription = description.length > 300 ? `${description.slice(0, 300)}...` : description;
+            return `${index + 1}. ${item.title || item.problemId} | difficulty: ${difficulty} | tags: ${tags}\n${shortDescription}`;
+        })
+        .join('\n\n');
+}
+
+function buildHintPrompt(problemInfo, message, similarContext) {
+    return [
+        'You are a concise LeetCode tutor.',
+        'Reply in 1-3 sentences.',
+        'Give one actionable next step or insight.',
+        'Do not provide the full solution.',
+        'If code is present, point to one part to revisit.',
+        'If the student asks about a previous hint, answer that question directly.',
+        '',
+        `Problem: ${problemInfo.title || 'Unknown'}`,
+        `Current code: ${problemInfo.code || 'Not provided'}`,
+        `Question: ${message}`,
+        `Top-${TOP_K} similar problems:`,
+        similarContext
+    ].join('\n');
+}
+
+function getRetryAfter(error) {
+    return error?.errorDetails
+        ?.find?.((detail) => detail?.['@type'] === 'type.googleapis.com/google.rpc.RetryInfo')
+        ?.retryDelay;
+}
+
 app.get('/', (req, res) => {
     res.json({ 
         status: 'Server is running',
         message: 'Welcome to Algo! Backend API',
         endpoints: {
-            hints: '/api/hints (POST)'
+            healthz: '/healthz (GET)',
+            readyz: '/readyz (GET)',
+            hints: '/api/hints (POST)',
+            index: '/api/index-problem (POST)',
+            search: '/api/rag/search (POST)'
         }
     });
+});
+
+app.get('/healthz', async (req, res) => {
+    try {
+        const pong = await cache.redis.ping();
+        res.status(200).json({ status: 'ok', redis: pong, timestamp: new Date().toISOString() });
+    } catch (error) {
+        res.status(500).json({ status: 'error', details: error.message });
+    }
+});
+
+app.get('/readyz', async (req, res) => {
+    if (!process.env.GEMINI_API_KEY) {
+        return res.status(503).json({ status: 'not-ready', reason: 'GEMINI_API_KEY is missing' });
+    }
+
+    try {
+        await cache.redis.ping();
+        res.status(200).json({ status: 'ready' });
+    } catch (error) {
+        res.status(503).json({ status: 'not-ready', reason: error.message });
+    }
+});
+
+app.post('/api/index-problem', async (req, res) => {
+    if (!req.body?.problemInfo) {
+        return res.status(400).json({ error: 'problemInfo is required' });
+    }
+
+    try {
+        ensureGeminiConfigured();
+
+        await vectorStore.ensureIndex();
+        const problemInfo = req.body.problemInfo;
+        const problemId = normalizeProblemId(problemInfo);
+        const document = buildProblemDocument(problemInfo);
+        const embedding = await getEmbedding(document);
+
+        await vectorStore.upsertProblem({
+            problemId,
+            title: problemInfo.title || '',
+            description: problemInfo.description || '',
+            difficulty: problemInfo.difficulty || '',
+            tags: Array.isArray(problemInfo.tags) ? problemInfo.tags.join(', ') : '',
+            embedding
+        });
+
+        res.status(200).json({ status: 'indexed', problemId });
+    } catch (error) {
+        console.error('Error indexing problem:', error);
+        res.status(500).json({ error: 'Failed to index problem', details: error.message });
+    }
+});
+
+app.post('/api/rag/search', async (req, res) => {
+    if (!req.body?.query) {
+        return res.status(400).json({ error: 'query is required' });
+    }
+
+    try {
+        ensureGeminiConfigured();
+
+        await vectorStore.ensureIndex();
+        const embedding = await getEmbedding(req.body.query);
+        const topK = Number(req.body.topK || TOP_K);
+        const similar = await vectorStore.searchSimilarProblems(embedding, topK);
+        res.status(200).json({ similar });
+    } catch (error) {
+        console.error('Error searching RAG index:', error);
+        res.status(500).json({ error: 'Failed to query index', details: error.message });
+    }
 });
 
 app.post('/api/hints', async (req, res) => {
@@ -41,75 +223,81 @@ app.post('/api/hints', async (req, res) => {
     }
 
     try {
-        console.log('Received request:', {
-            message: req.body.message,
-            hasProblemInfo: !!req.body.problemInfo,
-            problemTitle: req.body.problemInfo?.title
-        });
+        ensureGeminiConfigured();
 
-        if (!process.env.GEMINI_API_KEY) {
-            throw new Error('GEMINI_API_KEY is not set in environment variables');
-        }
-
-        const problemId = req.body.problemInfo?.id || 'default';
-        const cachedHint = await cache.getCachedHint(problemId);
+        const problemInfo = req.body.problemInfo || {};
+        const problemId = normalizeProblemId(problemInfo);
+        const cacheKey = buildCacheKey(problemInfo, req.body.message);
+        const cachedHint = await cache.getCachedHint(cacheKey);
         
         if (cachedHint) {
             console.log('Returning cached hint');
-            return res.json({ hint: cachedHint });
+            return res.json({ hint: cachedHint, source: 'cache', retrievalCount: 0 });
         }
 
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        if (pendingHintRequests.has(cacheKey)) {
+            const sharedResult = await pendingHintRequests.get(cacheKey);
+            return res.json({ ...sharedResult, source: 'shared' });
+        }
 
-        const prompt = `
-            You are a friendly and insightful LeetCode tutor chatting with a student. Respond conversationally and helpfully, with a clear but subtle nudge toward the next step.
+        const hintPromise = (async () => {
+            const queryText = [
+                buildProblemDocument(problemInfo),
+                `Question: ${req.body.message}`
+            ].join('\n\n');
 
-            Context:
-            - Problem: ${req.body.problemInfo?.title || 'Unknown'}
-            - Current Code: ${req.body.problemInfo?.code || 'Not provided'}
-            - Question: ${req.body.message}
+            let similarProblems = [];
+            try {
+                await vectorStore.ensureIndex();
+                const queryEmbedding = await getEmbedding(queryText);
+                await vectorStore.upsertProblem({
+                    problemId,
+                    title: problemInfo.title || '',
+                    description: problemInfo.description || '',
+                    difficulty: problemInfo.difficulty || '',
+                    tags: Array.isArray(problemInfo.tags) ? problemInfo.tags.join(', ') : '',
+                    embedding: queryEmbedding
+                });
 
-            Guidelines:
-            1. Respond like you're tutoring a peer — casual but clear.
-            2. Limit your reply to 1–3 concise sentences.
-            3. Focus on ONE actionable next step or core insight.
-            4. If code is provided, highlight ONE specific line or logic choice to revisit.
-            5. If no code is provided, suggest ONE natural starting point.
-            6. Avoid giving full solutions or final answers.
-            7. When prompted for hints, dont provide the specific code fixes, ask a question that will help the user think about the problem.
-            8. Use tone and intent that fits the question:
-               - For any question: Be helpful but concise
-               - For code reviews: Point out ONE specific improvement
-               - For concept questions: Give ONE key insight
-               - For debugging: Identify ONE likely issue
-               - For optimization: Suggest ONE efficiency improvement
-               - For general questions: Provide ONE clear direction
-               - For user asking how or I dont know to the question provided by the hint: Provide the answer to the respective hint
-            9. Don't re-explain the problem; assume they already understand it.
+                similarProblems = await vectorStore.searchSimilarProblems(queryEmbedding, TOP_K + 1, problemId);
+            } catch (embeddingError) {
+                console.warn('Embedding/RAG lookup unavailable, continuing without semantic context:', embeddingError.message);
+            }
 
-            Example responses:
-            - "You're close — try sorting the list first to make the logic easier."
-            - "That \`if\` condition might be skipping edge cases. Try printing it for a failing input."
-            - "Think about how you'd count unique characters without scanning the whole string again."
-            - "The time complexity can be improved by using a hash map instead of nested loops."
-            - "Try breaking down the problem into smaller subproblems first."
-            - "Consider using a two-pointer approach for this array problem."
-        `;
+            const model = genAI.getGenerativeModel({ model: GENERATION_MODEL });
+            const similarContext = formatSimilarContext(similarProblems.slice(0, TOP_K));
+            const prompt = buildHintPrompt(problemInfo, req.body.message, similarContext);
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const hint = response.text().trim();
-        
-        await cache.cacheHint(problemId, hint);
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const hint = response.text().trim();
+            await cache.cacheHint(cacheKey, hint);
+            return { hint, retrievalCount: similarProblems.length };
+        })();
+
+        pendingHintRequests.set(cacheKey, hintPromise);
+        const hintResult = await hintPromise;
+        pendingHintRequests.delete(cacheKey);
         
         console.log('Generated and cached response successfully');
-        res.json({ hint });
+        res.json({ ...hintResult, source: 'llm' });
     } catch (error) {
+        if (req.body?.message) {
+            const cacheKey = buildCacheKey(req.body.problemInfo || {}, req.body.message);
+            pendingHintRequests.delete(cacheKey);
+        }
         console.error('Error generating hint:', error);
-        res.status(500).json({ 
-            error: 'Failed to generate hint',
-            details: error.message 
+        const retryAfter = getRetryAfter(error);
+        const statusCode = error?.status === 429 ? 429 : 500;
+
+        if (retryAfter && statusCode === 429) {
+            res.set('Retry-After', retryAfter.replace(/s$/, ''));
+        }
+
+        res.status(statusCode).json({ 
+            error: statusCode === 429 ? 'Gemini quota exceeded' : 'Failed to generate hint',
+            details: error.message,
+            retryAfter
         });
     }
 });
@@ -122,7 +310,6 @@ app.use((err, req, res, next) => {
     });
 });
 
-// only start if run directly
 if (require.main === module) {
     const server = app.listen(port, () => {
         console.log(`Server running on port ${port}`);
@@ -133,7 +320,6 @@ if (require.main === module) {
         });
     });
 
-    // graceful shutdown
     process.on('SIGTERM', () => {
         console.log('SIGTERM signal received: closing HTTP server');
         server.close(() => {
