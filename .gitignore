@@ -1,2 +1,6 @@
 node_modules
+algo-backend/node_modules
 algo-backend/.env
+algo-backend/dist
+dist
+coverage
