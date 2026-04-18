@@ -1,6 +1,5 @@
 import { ProblemInfo } from './types';
 
-// Get DOM elements
 const problemInfo = document.getElementById('problem-info') as HTMLDivElement;
 const loadingSpinner = document.getElementById('loading-spinner') as HTMLDivElement;
 const errorMessage = document.getElementById('error-message') as HTMLDivElement;
@@ -8,14 +7,12 @@ const hintInput = document.getElementById('hint-input') as HTMLTextAreaElement;
 const sendButton = document.getElementById('send-button') as HTMLButtonElement;
 const hintResponse = document.getElementById('hint-response') as HTMLDivElement;
 
-// Show loading spinner
 function showLoading(): void {
     loadingSpinner.style.display = 'block';
     errorMessage.style.display = 'none';
     hintResponse.style.display = 'none';
 }
 
-// Show error message
 function showError(message: string): void {
     loadingSpinner.style.display = 'none';
     errorMessage.textContent = message;
@@ -23,7 +20,6 @@ function showError(message: string): void {
     hintResponse.style.display = 'none';
 }
 
-// Show hint response
 function showHint(hint: string): void {
     loadingSpinner.style.display = 'none';
     errorMessage.style.display = 'none';
@@ -31,7 +27,6 @@ function showHint(hint: string): void {
     hintResponse.style.display = 'block';
 }
 
-// Get problem info from the current tab
 async function getProblemInfo(): Promise<void> {
     showLoading();
     
@@ -51,7 +46,6 @@ async function getProblemInfo(): Promise<void> {
             return;
         }
 
-        // Display problem info
         problemInfo.innerHTML = `
             <h3>${response.title}</h3>
             <p><strong>Difficulty:</strong> ${response.difficulty}</p>
@@ -67,7 +61,6 @@ async function getProblemInfo(): Promise<void> {
     }
 }
 
-// Send hint request
 async function sendHintRequest(): Promise<void> {
     const hint = hintInput.value.trim();
     if (!hint) return;
@@ -112,7 +105,6 @@ async function sendHintRequest(): Promise<void> {
     }
 }
 
-// Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     getProblemInfo();
 

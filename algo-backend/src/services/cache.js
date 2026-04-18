@@ -22,7 +22,6 @@ class CacheService {
         });
     }
 
-    // Cache a hint response
     async cacheHint(problemId, hint, expiry = 3600) {
         try {
             const key = `hint:${problemId}`;
@@ -33,7 +32,6 @@ class CacheService {
         }
     }
 
-    // Get a cached hint
     async getCachedHint(problemId) {
         try {
             const key = `hint:${problemId}`;
@@ -45,7 +43,6 @@ class CacheService {
         }
     }
 
-    // Clear cache for a problem
     async clearProblemCache(problemId) {
         try {
             const key = `hint:${problemId}`;

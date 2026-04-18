@@ -1,7 +1,6 @@
 import { ProblemInfo, Message } from './types';
 
 function initialize(): void {
-    // Add styles only if they don't exist
     if (!document.getElementById('algo-chat-styles')) {
         const style = document.createElement('style');
         style.id = 'algo-chat-styles';
@@ -44,17 +43,15 @@ function initialize(): void {
     }
 }
 
-// Only inject once
+// only inject once
 if (!window.__algoChatInjected) {
     window.__algoChatInjected = true;
 
-    // Create floating button
     const button = document.createElement('div');
     button.id = 'algo-chat-fab';
     button.innerHTML = '<span>💬</span>';
     document.body.appendChild(button);
 
-    // Create chat container (hidden by default)
     const chat = document.createElement('div');
     chat.id = 'algo-chat-dropdown';
     chat.innerHTML = `
@@ -71,19 +68,16 @@ if (!window.__algoChatInjected) {
     chat.style.display = 'none';
     document.body.appendChild(chat);
 
-    // Show chat on button click
     (button as HTMLDivElement).onclick = (): void => {
         chat.style.display = 'flex';
         button.style.display = 'none';
     };
 
-    // Hide chat on close
     (chat.querySelector('#algo-chat-close') as HTMLButtonElement)?.addEventListener('click', () => {
         chat.style.display = 'none';
         button.style.display = 'flex';
     });
 
-    // Send message
     const sendBtn = chat.querySelector('.algo-chat-input button') as HTMLButtonElement;
     const input = chat.querySelector('.algo-chat-input textarea') as HTMLTextAreaElement;
     const messages = chat.querySelector('.algo-chat-messages') as HTMLDivElement;
@@ -92,17 +86,15 @@ if (!window.__algoChatInjected) {
         const div = document.createElement('div');
         div.className = 'algo-message ' + role;
         
-        // Split text into sentences and wrap each in a paragraph
         const sentences = text.split(/(?<=[.!?])\s+/);
         const formattedText = sentences
             .map(sentence => {
-                // Convert markdown-style formatting for each sentence
                 let formatted = sentence
-                    // Convert code blocks
+                    // convert code blocks
                     .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-                    // Convert inline code
+                    // convert inline code
                     .replace(/`([^`]+)`/g, '<code>$1</code>')
-                    // Convert lists
+                    // convert lists
                     .replace(/^\s*[-*+]\s+(.+)$/gm, '<li>$1</li>');
                 
                 return `<p>${formatted}</p>`;
@@ -140,7 +132,6 @@ if (!window.__algoChatInjected) {
             let testCasesPassed = '';
             let difficulty = '';
             const tags: string[] = [];
-            // Get problem title
             const titleSelectors = [
                 '[data-cy="question-title"]',
                 'div[class*="title"]',
@@ -154,7 +145,6 @@ if (!window.__algoChatInjected) {
                     break;
                 }
             }
-            // Get problem description
             const descriptionSelectors = [
                 '[data-cy="question-content"]',
                 'div[class*="content"]',
@@ -168,7 +158,6 @@ if (!window.__algoChatInjected) {
                     break;
                 }
             }
-            // Get current code
             try {
                 if (window.monaco?.editor) {
                     const models = window.monaco.editor.getModels();
@@ -193,7 +182,6 @@ if (!window.__algoChatInjected) {
                     }
                 }
             }
-            // Get programming language
             const languageSelectors = [
                 '.select-dropdown',
                 'div[class*="language-select"]',
@@ -207,7 +195,6 @@ if (!window.__algoChatInjected) {
                     break;
                 }
             }
-            // Get test cases passed
             const testCasesSelectors = [
                 '[data-cy="test-cases-passed"]',
                 'div[class*="test-cases"]',
@@ -221,7 +208,6 @@ if (!window.__algoChatInjected) {
                     break;
                 }
             }
-            // Get difficulty level
             const difficultySelectors = [
                 '[diff]',
                 'div[class*="difficulty"]',
@@ -235,7 +221,6 @@ if (!window.__algoChatInjected) {
                     break;
                 }
             }
-            // Get problem tags/categories
             const tagSelectors = [
                 '.tag__2PqS',
                 'div[class*="tag"]',
@@ -274,7 +259,6 @@ if (!window.__algoChatInjected) {
             addMessage('user', msg);
             input.value = '';
             
-            // Show typing indicator
             const typingIndicator = showTypingIndicator();
             
             try {
@@ -285,7 +269,6 @@ if (!window.__algoChatInjected) {
                 });
                 const data = await res.json();
                 
-                // Remove typing indicator and show response
                 typingIndicator.remove();
                 addMessage('assistant', data.hint || 'No hint received.');
             } catch (e) {
@@ -302,16 +285,14 @@ if (!window.__algoChatInjected) {
         });
     }
 
-    // Listen for messages from the popup
     chrome.runtime.onMessage.addListener((request: Message, sender: unknown, sendResponse: (info: ProblemInfo | null) => void) => {
         if (request.action === 'getProblemInfo') {
             const info = getProblemInfo();
             sendResponse(info);
         }
-        return true; // Keep the message channel open for async response
+        return true; // needed for async sendResponse
     });
 
-    // Initialize when the page is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initialize);
     } else {

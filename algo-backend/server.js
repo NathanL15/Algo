@@ -7,28 +7,24 @@ const cache = require('./src/services/cache');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Configure CORS for production
 const corsOptions = {
     origin: [
-        'chrome-extension://*',  // Allow Chrome extensions
-        'https://leetcode.com',  // Allow LeetCode
-        'http://localhost:3000'  // Allow local development
+        'chrome-extension://*',  // allow chrome extensions
+        'https://leetcode.com',  // allow leetcode
+        'http://localhost:3000'  // allow local development
     ],
     methods: ['GET', 'POST'],
     credentials: true
 };
 
-// Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Logging middleware
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
 });
 
-// Health check endpoint
 app.get('/', (req, res) => {
     res.json({ 
         status: 'Server is running',
@@ -39,7 +35,6 @@ app.get('/', (req, res) => {
     });
 });
 
-// Main endpoint for hints
 app.post('/api/hints', async (req, res) => {
     if (!req.body?.message) {
         return res.status(400).json({ error: 'Message is required' });
@@ -56,7 +51,6 @@ app.post('/api/hints', async (req, res) => {
             throw new Error('GEMINI_API_KEY is not set in environment variables');
         }
 
-        // Check cache first
         const problemId = req.body.problemInfo?.id || 'default';
         const cachedHint = await cache.getCachedHint(problemId);
         
@@ -107,7 +101,6 @@ app.post('/api/hints', async (req, res) => {
         const response = await result.response;
         const hint = response.text().trim();
         
-        // Cache the hint
         await cache.cacheHint(problemId, hint);
         
         console.log('Generated and cached response successfully');
@@ -121,7 +114,6 @@ app.post('/api/hints', async (req, res) => {
     }
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
     res.status(500).json({ 
@@ -130,7 +122,7 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Only start the server if this file is run directly
+// only start if run directly
 if (require.main === module) {
     const server = app.listen(port, () => {
         console.log(`Server running on port ${port}`);
@@ -141,7 +133,7 @@ if (require.main === module) {
         });
     });
 
-    // Handle graceful shutdown
+    // graceful shutdown
     process.on('SIGTERM', () => {
         console.log('SIGTERM signal received: closing HTTP server');
         server.close(() => {
