@@ -1,51 +1,55 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
-// Get DOM elements
+
+;// ./src/config.ts
+const fallbackUrl = 'http://localhost:3000';
+const rawApiBaseUrl =  true ? "http://localhost:3000" : 0;
+const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
+
+;// ./src/popup.ts
+
 const problemInfo = document.getElementById('problem-info');
 const loadingSpinner = document.getElementById('loading-spinner');
 const errorMessage = document.getElementById('error-message');
 const hintInput = document.getElementById('hint-input');
 const sendButton = document.getElementById('send-button');
 const hintResponse = document.getElementById('hint-response');
-// Show loading spinner
+function requestProblemInfo() {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: 'getProblemInfo' }, (response) => {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+                return;
+            }
+            resolve(response ?? null);
+        });
+    });
+}
 function showLoading() {
     loadingSpinner.style.display = 'block';
     errorMessage.style.display = 'none';
     hintResponse.style.display = 'none';
 }
-// Show error message
 function showError(message) {
     loadingSpinner.style.display = 'none';
     errorMessage.textContent = message;
     errorMessage.style.display = 'block';
     hintResponse.style.display = 'none';
 }
-// Show hint response
 function showHint(hint) {
     loadingSpinner.style.display = 'none';
     errorMessage.style.display = 'none';
     hintResponse.textContent = hint;
     hintResponse.style.display = 'block';
 }
-// Get problem info from the current tab
 async function getProblemInfo() {
     showLoading();
     try {
-        const response = await new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({ action: 'getProblemInfo' }, (response) => {
-                if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                }
-                else {
-                    resolve(response);
-                }
-            });
-        });
+        const response = await requestProblemInfo();
         if (!response) {
             showError('No problem information found. Please make sure you are on a LeetCode problem page.');
             return;
         }
-        // Display problem info
         problemInfo.innerHTML = `
             <h3>${response.title}</h3>
             <p><strong>Difficulty:</strong> ${response.difficulty}</p>
@@ -60,28 +64,18 @@ async function getProblemInfo() {
         showError('Error getting problem information. Please try again.');
     }
 }
-// Send hint request
 async function sendHintRequest() {
     const hint = hintInput.value.trim();
     if (!hint)
         return;
     showLoading();
     try {
-        const response = await new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({ action: 'getProblemInfo' }, (response) => {
-                if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                }
-                else {
-                    resolve(response);
-                }
-            });
-        });
+        const response = await requestProblemInfo();
         if (!response) {
             showError('No problem information found. Please make sure you are on a LeetCode problem page.');
             return;
         }
-        const apiResponse = await fetch('https://algo-de3g.onrender.com/api/hints', {
+        const apiResponse = await fetch(`${API_BASE_URL}/api/hints`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -100,7 +94,6 @@ async function sendHintRequest() {
         showError('Error sending hint request. Please try again.');
     }
 }
-// Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     getProblemInfo();
     sendButton.addEventListener('click', sendHintRequest);
@@ -111,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
 
 /******/ })()
 ;

@@ -61,5 +61,5 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: us-central1-docker.pkg.dev/algo-461301/algo-backend/algo-backend:latest
-          flags: '--set-env-vars=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},NODE_ENV=production'
+          flags: '--set-env-vars=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},NODE_ENV=production,REDIS_HOST=${{ secrets.REDIS_HOST }},REDIS_PORT=${{ secrets.REDIS_PORT }},REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }},EMBEDDING_DIM=3072,RAG_TOP_K=3'
       

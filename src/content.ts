@@ -1,4 +1,5 @@
 import { ProblemInfo, Message } from './types';
+import { API_BASE_URL } from './config';
 
 function initialize(): void {
     if (!document.getElementById('algo-chat-styles')) {
@@ -17,13 +18,6 @@ function initialize(): void {
             @keyframes messageAppear { to { opacity: 1; transform: translateY(0); } }
             .algo-message.user { background-color: rgba(45, 55, 72, 0.95); color: #E2E8F0; margin-left: auto; border: 1px solid rgba(79, 209, 197, 0.2); }
             .algo-message.assistant { background-color: rgba(45, 55, 72, 0.95); color: #E2E8F0; margin-right: auto; border: 1px solid rgba(79, 209, 197, 0.2); }
-            .algo-message p { margin: 0 0 8px 0; }
-            .algo-message p:last-child { margin-bottom: 0; }
-            .algo-message code { background-color: rgba(0, 0, 0, 0.2); padding: 2px 4px; border-radius: 4px; font-family: monospace; }
-            .algo-message pre { background-color: rgba(0, 0, 0, 0.2); padding: 8px; border-radius: 4px; margin: 8px 0; overflow-x: auto; }
-            .algo-message pre code { background-color: transparent; padding: 0; }
-            .algo-message ul, .algo-message ol { margin: 8px 0; padding-left: 20px; }
-            .algo-message li { margin: 4px 0; }
             .algo-chat-input { padding: 12px; background-color: rgba(45, 55, 72, 0.95); border-radius: 0 0 12px 12px; display: flex; gap: 8px; border-top: 1px solid rgba(79, 209, 197, 0.2); align-items: center; }
             .algo-chat-input textarea { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #4A5568; background-color: #1A202C; color: #E2E8F0; resize: none; font-family: inherit; font-size: 14px; line-height: 1.4; transition: border-color 0.2s; height: 42px; min-height: 42px; max-height: 42px; }
             .algo-chat-input textarea:focus { outline: none; border-color: #4FD1C5; }
@@ -43,7 +37,6 @@ function initialize(): void {
     }
 }
 
-// only inject once
 if (!window.__algoChatInjected) {
     window.__algoChatInjected = true;
 
@@ -82,40 +75,24 @@ if (!window.__algoChatInjected) {
     const input = chat.querySelector('.algo-chat-input textarea') as HTMLTextAreaElement;
     const messages = chat.querySelector('.algo-chat-messages') as HTMLDivElement;
 
+    const scrollMessages = (): void => {
+        messages.scrollTop = messages.scrollHeight;
+    };
+
     const addMessage = (role: 'user' | 'assistant', text: string): void => {
         const div = document.createElement('div');
         div.className = 'algo-message ' + role;
-        
-        const sentences = text.split(/(?<=[.!?])\s+/);
-        const formattedText = sentences
-            .map(sentence => {
-                let formatted = sentence
-                    // convert code blocks
-                    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-                    // convert inline code
-                    .replace(/`([^`]+)`/g, '<code>$1</code>')
-                    // convert lists
-                    .replace(/^\s*[-*+]\s+(.+)$/gm, '<li>$1</li>');
-                
-                return `<p>${formatted}</p>`;
-            })
-            .join('');
-
-        div.innerHTML = formattedText;
-        messages?.appendChild(div);
-        if (messages) {
-            messages.scrollTop = messages.scrollHeight;
-        }
+        div.textContent = text;
+        messages.appendChild(div);
+        scrollMessages();
     };
 
     const showTypingIndicator = (): HTMLDivElement => {
         const indicator = document.createElement('div');
         indicator.className = 'algo-message assistant typing-indicator';
         indicator.innerHTML = '<span></span><span></span><span></span>';
-        messages?.appendChild(indicator);
-        if (messages) {
-            messages.scrollTop = messages.scrollHeight;
-        }
+        messages.appendChild(indicator);
+        scrollMessages();
         return indicator;
     };
 
@@ -165,7 +142,7 @@ if (!window.__algoChatInjected) {
                         code = models[0].getValue();
                     }
                 }
-            } catch (error) { /* empty */ }
+            } catch {}
             if (!code) {
                 const monacoEditor = document.querySelector('.monaco-editor');
                 if (monacoEditor) {
@@ -247,7 +224,7 @@ if (!window.__algoChatInjected) {
                 difficulty,
                 tags
             };
-        } catch (error) {
+        } catch {
             return null;
         }
     };
@@ -262,7 +239,7 @@ if (!window.__algoChatInjected) {
             const typingIndicator = showTypingIndicator();
             
             try {
-                const res = await fetch('https://algo-de3g.onrender.com/api/hints', {
+                const res = await fetch(`${API_BASE_URL}/api/hints`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: msg, problemInfo: getProblemInfo() })
@@ -290,7 +267,7 @@ if (!window.__algoChatInjected) {
             const info = getProblemInfo();
             sendResponse(info);
         }
-        return true; // needed for async sendResponse
+        return true;
     });
 
     if (document.readyState === 'loading') {

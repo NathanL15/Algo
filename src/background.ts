@@ -1,21 +1,22 @@
-import { Message } from './types';
+import { Message, ProblemInfo } from './types';
 
-chrome.runtime.onMessage.addListener((request: Message, sender, sendResponse) => {
-    console.log('Background script received message:', request);
-    
-    if (request.action === 'getProblemInfo') {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (tabs[0]?.id) {
-                chrome.tabs.sendMessage(tabs[0].id, { action: 'getProblemInfo' }, (response) => {
-                    console.log('Received response from content script:', response);
-                    sendResponse(response);
-                });
-            }
-        });
-        return true; // needed for async sendResponse
+chrome.runtime.onMessage.addListener((request: Message, _sender, sendResponse) => {
+    if (request.action !== 'getProblemInfo') {
+        return false;
     }
-});
 
-chrome.runtime.onInstalled.addListener(() => {
-    console.log('Extension installed');
-}); 
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const [activeTab] = tabs;
+
+        if (!activeTab?.id) {
+            sendResponse(null);
+            return;
+        }
+
+        chrome.tabs.sendMessage(activeTab.id, { action: 'getProblemInfo' }, (response: ProblemInfo | null) => {
+            sendResponse(response ?? null);
+        });
+    });
+
+    return true;
+});

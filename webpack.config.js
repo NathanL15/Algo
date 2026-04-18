@@ -1,5 +1,8 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
+
+const apiBaseUrl = process.env.ALGO_API_BASE_URL || 'http://localhost:3000';
 
 module.exports = {
   mode: 'production',
@@ -29,6 +32,9 @@ module.exports = {
     }
   },
   plugins: [
+    new webpack.DefinePlugin({
+      __ALGO_API_BASE_URL__: JSON.stringify(apiBaseUrl)
+    }),
     new CopyPlugin({
       patterns: [
         { from: 'manifest.json', to: 'manifest.json' },
@@ -39,6 +45,6 @@ module.exports = {
     })
   ],
   optimization: {
-    minimize: false // Disable minification for better debugging
+    minimize: false
   }
 }; 

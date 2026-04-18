@@ -1,5 +1,4 @@
-// Mock Chrome API
-global.chrome = {
+globalThis.chrome = {
   runtime: {
     onMessage: {
       addListener: jest.fn()
@@ -16,10 +15,8 @@ global.chrome = {
   }
 } as unknown as typeof chrome;
 
-// Mock fetch
-global.fetch = jest.fn();
+globalThis.fetch = jest.fn();
 
-// Mock window.__algoChatInjected
 Object.defineProperty(window, '__algoChatInjected', {
   value: false,
   writable: true

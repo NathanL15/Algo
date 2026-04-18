@@ -1,3 +1,4 @@
+jest.mock('ioredis');
 const cache = require('../src/services/cache');
 
 describe('Redis Cache Service', () => {
@@ -5,7 +6,7 @@ describe('Redis Cache Service', () => {
   const testValue = { hint: 'This is a test hint.' };
 
   it('should cache and retrieve a hint', async () => {
-    await cache.cacheHint(testKey, testValue, 10); // 10 seconds expiry
+    await cache.cacheHint(testKey, testValue, 10);
     const cached = await cache.getCachedHint(testKey);
     expect(cached).toEqual(testValue);
   });
@@ -17,7 +18,6 @@ describe('Redis Cache Service', () => {
   });
 
   afterAll(async () => {
-    // Close the Redis connection to prevent open handles
     if (cache.redis && typeof cache.redis.quit === 'function') {
       await cache.redis.quit();
     } else if (cache.redis && typeof cache.redis.disconnect === 'function') {

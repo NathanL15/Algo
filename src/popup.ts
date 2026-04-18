@@ -1,4 +1,5 @@
 import { ProblemInfo } from './types';
+import { API_BASE_URL } from './config';
 
 const problemInfo = document.getElementById('problem-info') as HTMLDivElement;
 const loadingSpinner = document.getElementById('loading-spinner') as HTMLDivElement;
@@ -6,6 +7,19 @@ const errorMessage = document.getElementById('error-message') as HTMLDivElement;
 const hintInput = document.getElementById('hint-input') as HTMLTextAreaElement;
 const sendButton = document.getElementById('send-button') as HTMLButtonElement;
 const hintResponse = document.getElementById('hint-response') as HTMLDivElement;
+
+function requestProblemInfo(): Promise<ProblemInfo | null> {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: 'getProblemInfo' }, (response) => {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+                return;
+            }
+
+            resolve(response ?? null);
+        });
+    });
+}
 
 function showLoading(): void {
     loadingSpinner.style.display = 'block';
@@ -31,15 +45,7 @@ async function getProblemInfo(): Promise<void> {
     showLoading();
     
     try {
-        const response = await new Promise<ProblemInfo>((resolve, reject) => {
-            chrome.runtime.sendMessage({ action: 'getProblemInfo' }, (response) => {
-                if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                } else {
-                    resolve(response);
-                }
-            });
-        });
+        const response = await requestProblemInfo();
 
         if (!response) {
             showError('No problem information found. Please make sure you are on a LeetCode problem page.');
@@ -68,22 +74,14 @@ async function sendHintRequest(): Promise<void> {
     showLoading();
 
     try {
-        const response = await new Promise<ProblemInfo>((resolve, reject) => {
-            chrome.runtime.sendMessage({ action: 'getProblemInfo' }, (response) => {
-                if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                } else {
-                    resolve(response);
-                }
-            });
-        });
+        const response = await requestProblemInfo();
 
         if (!response) {
             showError('No problem information found. Please make sure you are on a LeetCode problem page.');
             return;
         }
 
-        const apiResponse = await fetch('https://algo-de3g.onrender.com/api/hints', {
+        const apiResponse = await fetch(`${API_BASE_URL}/api/hints`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
