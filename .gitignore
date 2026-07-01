@@ -4,3 +4,26 @@ algo-backend/.env
 algo-backend/dist
 dist
 coverage
+
+# LaTeX build artefacts (keep report.tex and report.pdf)
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.lof
+report/*.lot
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+report/*.synctex
+report/*.nav
+report/*.snm
+report/*.vrb
+report/*.bbl
+report/*.blg
+report/*.bcf
+report/*.run.xml
+
+# dependency directories (accidentally committed previously)
+node_modules/
+algo-backend/node_modules/
